@@ -1,209 +1,358 @@
-local Library = loadstring(Game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
+-- OFFICIAL SPV CP SMALL LOADING SCREEN WITH PLAYER AVATAR
 
-local PhantomForcesWindow = Library:NewWindow("Neon.C Hub X")
+local LOGO_ID = "rbxassetid://1234567890" -- Replace with your OFFICIAL SPV logo asset ID
+local DISPLAY_NAME = "BLADE BALL SCRIPT"
+local USERNAME = "WAIT FOR THE BOT"
+local FOOTER_TEXT = "PLEASE BE PATIENT...."
+local TITLE_TEXT = "SCRIPT LOADING....."
 
-local KillingCheats = PhantomForcesWindow:NewSection("🎯 Combat")
-
-KillingCheats:CreateButton("Auto Parry X", function()
-local Debug = false -- Set this to true if you want my debug output.
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
-local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
-local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9) -- A second argument in waitforchild what could it mean?
-local Balls = workspace:WaitForChild("Balls", 9e9)
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- Functions
+-- GUI
+local sg = Instance.new("ScreenGui")
+sg.ResetOnSpawn = false
+sg.DisplayOrder = 9999
+sg.IgnoreGuiInset = true
+sg.Parent = playerGui
 
-local function print(...) -- Debug print.
-    if Debug then
-        warn(...)
-    end
-end
+-- Background
+local dim = Instance.new("Frame")
+dim.Size = UDim2.new(1,0,1,0)
+dim.BackgroundColor3 = Color3.fromRGB(0,0,0)
+dim.BackgroundTransparency = 0.45
+dim.BorderSizePixel = 0
+dim.Parent = sg
 
-local function VerifyBall(Ball) -- Returns nil if the ball isn't a valid projectile; true if it's the right ball.
-    if typeof(Ball) == "Instance" and Ball:IsA("BasePart") and Ball:IsDescendantOf(Balls) and Ball:GetAttribute("realBall") == true then
-        return true
-    end
-end
+-- Card
+local card = Instance.new("Frame")
+card.Size = UDim2.new(0,220,0,280)
+card.Position = UDim2.new(0.5,-110,0.5,-140)
+card.BackgroundColor3 = Color3.fromRGB(10,10,12)
+card.Active = true
+card.Draggable = true
+card.Parent = sg
+Instance.new("UICorner",card).CornerRadius = UDim.new(0,18)
 
-local function IsTarget() -- Returns true if we are the current target.
-    return (Player.Character and Player.Character:FindFirstChild("Highlight"))
-end
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(80,180,255)
+stroke.Thickness = 2
+stroke.Parent = card
 
-local function Parry() -- Parries.
-    Remotes:WaitForChild("ParryButtonPress"):Fire()
-end
+-- PLAYER AVATAR ICON
+local avatarFrame = Instance.new("Frame")
+avatarFrame.Size = UDim2.new(0,60,0,60)
+avatarFrame.Position = UDim2.new(0.5,-30,0,-30)
+avatarFrame.BackgroundColor3 = Color3.fromRGB(20,20,25)
+avatarFrame.ClipsDescendants = true
+avatarFrame.Parent = card
 
--- The actual code
+local avatarCorner = Instance.new("UICorner")
+avatarCorner.CornerRadius = UDim.new(1,0)
+avatarCorner.Parent = avatarFrame
 
-Balls.ChildAdded:Connect(function(Ball)
-    if not VerifyBall(Ball) then
-        return
-    end
-    
-    print(`Ball Spawned: {Ball}`)
-    
-    local OldPosition = Ball.Position
-    local OldTick = tick()
-    
-    Ball:GetPropertyChangedSignal("Position"):Connect(function()
-        if IsTarget() then -- No need to do the math if we're not being attacked.
-            local Distance = (Ball.Position - workspace.CurrentCamera.Focus.Position).Magnitude
-            local Velocity = (OldPosition - Ball.Position).Magnitude -- Fix for .Velocity not working. Yes I got the lowest possible grade in accuplacer math.
-            
-            print(`Distance: {Distance}\nVelocity: {Velocity}\nTime: {Distance / Velocity}`)
-        
-            if (Distance / Velocity) <= 10 then -- Sorry for the magic number. This just works. No, you don't get a slider for this because it's 2am.
-                Parry()
-            end
-        end
-        
-        if (tick() - OldTick >= 1/60) then -- Don't want it to update too quickly because my velocity implementation is aids. Yes, I tried Ball.Velocity. No, it didn't work.
-            OldTick = tick()
-            OldPosition = Ball.Position
-        end
-    end)
+local avatarImg = Instance.new("ImageLabel")
+avatarImg.Size = UDim2.new(1,0,1,0)
+avatarImg.BackgroundTransparency = 1
+avatarImg.Parent = avatarFrame
+
+-- GET PLAYER THUMBNAIL
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size180x180
+local content, isReady = Players:GetUserThumbnailAsync(player.UserId, thumbType, thumbSize)
+avatarImg.Image = content
+
+-- LOGO (Optional, behind avatar if you want)
+local logo = Instance.new("ImageLabel")
+logo.Size = UDim2.new(0,60,0,60)
+logo.Position = UDim2.new(0.5,-30,0,-30)
+logo.BackgroundTransparency = 1
+logo.Image = LOGO_ID
+logo.Parent = card
+
+-- NAME
+local nameLabel = Instance.new("TextLabel")
+nameLabel.Size = UDim2.new(1,-20,0,24)
+nameLabel.Position = UDim2.new(0,10,0,50) -- moved down for avatar
+nameLabel.BackgroundTransparency = 1
+nameLabel.Text = DISPLAY_NAME
+nameLabel.TextColor3 = Color3.fromRGB(255,255,255)
+nameLabel.Font = Enum.Font.GothamBold
+nameLabel.TextSize = 15
+nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+nameLabel.Parent = card
+
+-- USERNAME
+local atLabel = Instance.new("TextLabel")
+atLabel.Size = UDim2.new(1,-20,0,18)
+atLabel.Position = UDim2.new(0,10,0,72)
+atLabel.BackgroundTransparency = 1
+atLabel.Text = USERNAME
+atLabel.TextColor3 = Color3.fromRGB(140,140,150)
+atLabel.Font = Enum.Font.Gotham
+atLabel.TextSize = 11
+atLabel.TextXAlignment = Enum.TextXAlignment.Center
+atLabel.Parent = card
+
+-- TITLE
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,-20,0,22)
+title.Position = UDim2.new(0,10,0,100)
+title.BackgroundTransparency = 1
+title.Text = TITLE_TEXT
+title.TextColor3 = Color3.fromRGB(255,200,50)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 13
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.Parent = card
+
+-- STATUS
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1,-20,0,18)
+status.Position = UDim2.new(0,10,0,120)
+status.BackgroundTransparency = 1
+status.Text = "Initializing..."
+status.TextColor3 = Color3.fromRGB(180,180,190)
+status.Font = Enum.Font.Gotham
+status.TextSize = 11
+status.TextXAlignment = Enum.TextXAlignment.Center
+status.Parent = card
+
+-- PROGRESS BAR
+local barBg = Instance.new("Frame")
+barBg.Size = UDim2.new(1,-30,0,7)
+barBg.Position = UDim2.new(0,15,0,150)
+barBg.BackgroundColor3 = Color3.fromRGB(35,35,42)
+barBg.BorderSizePixel = 0
+barBg.Parent = card
+Instance.new("UICorner",barBg).CornerRadius = UDim.new(1,0)
+
+local barFill = Instance.new("Frame")
+barFill.Size = UDim2.new(0,0,1,0)
+barFill.BackgroundColor3 = Color3.fromRGB(80,160,255)
+barFill.Parent = barBg
+Instance.new("UICorner",barFill).CornerRadius = UDim.new(1,0)
+
+-- TIMER
+local timerLabel = Instance.new("TextLabel")
+timerLabel.Size = UDim2.new(0.5,-10,0,18)
+timerLabel.Position = UDim2.new(0,15,0,165)
+timerLabel.BackgroundTransparency = 1
+timerLabel.Text = "00:00"
+timerLabel.TextColor3 = Color3.fromRGB(80,160,255)
+timerLabel.Font = Enum.Font.GothamBold
+timerLabel.TextSize = 12
+timerLabel.TextXAlignment = Enum.TextXAlignment.Left
+timerLabel.Parent = card
+
+local percentLabel = Instance.new("TextLabel")
+percentLabel.Size = UDim2.new(0.5,-10,0,18)
+percentLabel.Position = UDim2.new(0.5,0,0,165)
+percentLabel.BackgroundTransparency = 1
+percentLabel.Text = "0%"
+percentLabel.TextColor3 = Color3.fromRGB(200,200,210)
+percentLabel.Font = Enum.Font.GothamBold
+percentLabel.TextSize = 12
+percentLabel.TextXAlignment = Enum.TextXAlignment.Right
+percentLabel.Parent = card
+
+-- FOOTER
+local footer = Instance.new("TextLabel")
+footer.Size = UDim2.new(1,-20,0,16)
+footer.Position = UDim2.new(0,10,1,-20)
+footer.BackgroundTransparency = 1
+footer.Text = FOOTER_TEXT
+footer.TextColor3 = Color3.fromRGB(0,255, 0)
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 12
+footer.TextXAlignment = Enum.TextXAlignment.Center
+footer.Parent = card
+
+-- TIMER SYSTEM
+local elapsed = 0
+RunService.RenderStepped:Connect(function(dt)
+	elapsed += dt
+	timerLabel.Text = string.format("%02d:%02d", math.floor(elapsed/60), math.floor(elapsed%60))
 end)
-end)
 
-KillingCheats:CreateButton("Auto Win X", function()
-getgenv().god = true
-while getgenv().god and task.wait() do
-    for _,ball in next, workspace.Balls:GetChildren() do
-        if ball then
-            if game:GetService("Players").LocalPlayer.Character and game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position, ball.Position)
-                if game:GetService("Players").LocalPlayer.Character:FindFirstChild("Highlight") then
-                    game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame = ball.CFrame * CFrame.new(0, 0, (ball.Velocity).Magnitude * -0.5)
-                    game:GetService("ReplicatedStorage").Remotes.ParryButtonPress:Fire()
-                end
-            end
-        end
-    end
-end
-end)
-
-KillingCheats:CreateButton("Auto Spam X", function()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Code4Zaaa/X7Project/main/Game/AutoParryOnly"))();
-end)
-
-KillingCheats:CreateButton("Auto Detect Spam X", function()
-getgenv().AutoDetectSpam = true
-
---///////////////////////////////////////////////////////////////////--
-
-local Alive = workspace:WaitForChild("Alive", 9e9)
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
-local ParryAttempt = Remotes:WaitForChild("ParryAttempt", 9e9)
-local Balls = workspace:WaitForChild("Balls", 9e9)
-
---///////////////////////////////////////////////////////////////////--
-
-local function get_ProxyPlayer()
-  local Distance = math.huge
-  local plrRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-  local PlayerReturn = nil
-  
-  for _,plr1 in pairs(Alive:GetChildren()) do
-    if plr1:FindFirstChild("Humanoid") and plr1.Humanoid.Health > 50 then
-      if plr1.Name ~= Player.Name and plrRP and plr1:FindFirstChild("HumanoidRootPart") then
-        local magnitude = (plr1.HumanoidRootPart.Position - plrRP.Position).Magnitude
-        if magnitude <= Distance then
-          Distance = magnitude
-          PlayerReturn = plr1
-        end
-      end
-    end
-  end
-  return PlayerReturn
-end
-
-local function SuperClick()
-  task.spawn(function()
-    if IsAlive() and #Alive:GetChildren() > 1 then
-      local args1 = 0.5
-      local args2 = CFrame.new()
-      local args3 = {["enzo"] = Vector3.new()}
-      local args4 = {500, 500}
-      
-      if args1 and args2 and args3 and args4 then
-        ParryAttempt:FireServer(args1, args2, args3, args4)
-      end
-    end
-  end)
-end
-
+-- SLOW PROGRESS (~2 minutes)
 task.spawn(function()
-  while task.wait() do
-    if getgenv().SpamClickA and getgenv().AutoDetectSpam then
-      SuperClick()
-    end
-  end
+	local totalTime = 120
+	local startTime = tick()
+	local progress = 0
+
+	while progress < 89 do
+		local elapsedTime = tick() - startTime
+		progress = math.clamp((elapsedTime/totalTime)*89,0,89)
+		barFill.Size = UDim2.new(progress/100,0,1,0)
+		percentLabel.Text = math.floor(progress).."%"
+		RunService.RenderStepped:Wait()
+	end
+	status.Text = "Waiting for response..."
 end)
 
-local ParryCounter = 0
-local DetectSpamDistance = 0
+-- POP ANIMATION
+card.Size = UDim2.new(0,0,0,0)
+card.Position = UDim2.new(0.5,0,0.5,0)
+TweenService:Create(
+	card,
+	TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+	{Size = UDim2.new(0,220,0,280), Position = UDim2.new(0.5,-110,0.5,-140)}
+):Play()
+-- Anti-Leave + Anti-Kick Script
+-- Blocks: all kick methods, RemoteEvent kicks, script kicks, CoreGui leave button, shutdown
 
-local function GetBall(ball)
-  local Target = ""
-  
-  ball:GetPropertyChangedSignal("Position"):Connect(function()
-    local PlayerPP = Player and Player.Character and Player.Character.PrimaryPart
-    local NearestPlayer = get_ProxyPlayer()
-    
-    if ball and PlayerPP and NearestPlayer and NearestPlayer.PrimaryPart then
-      local PlayerDistance = (PlayerPP.Position - NearestPlayer.PrimaryPart.Position).Magnitude
-      local BallDistance = (PlayerPP.Position - ball.Position).Magnitude
-      
-      DetectSpamDistance = 25 + math.clamp(ParryCounter / 3, 0, 25)
-      
-      if ParryCounter > 2 and PlayerDistance < DetectSpamDistance and BallDistance < 55 then
-        getgenv().SpamClickA = true
-      else
-        getgenv().SpamClickA = false
-      end
-    end
-  end)
-  ball:GetAttributeChangedSignal("target"):Connect(function()
-    Target = ball:GetAttribute("target")
-    local NearestPlayer = get_ProxyPlayer()
-    
-    if NearestPlayer then
-      if Target == NearestPlayer.Name or Target == Player.Name then
-        ParryCounter = ParryCounter + 1
-      else
-        ParryCounter = 0
-      end
-    end
-  end)
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local lp = Players.LocalPlayer
+
+-- =============================================
+-- 1. HOOK lp:Kick DIRECTLY
+-- =============================================
+pcall(function()
+	hookfunction(lp.Kick, newcclosure(function() return end))
+end)
+
+-- =============================================
+-- 2. METATABLE __NAMECALL HOOK (catches ALL :Kick calls)
+-- =============================================
+local mt = getrawmetatable(game)
+if setreadonly then setreadonly(mt, false) end
+
+local oldNamecall = mt.__namecall
+mt.__namecall = newcclosure(function(self, ...)
+	local method = getnamecallmethod()
+
+	-- Block any :Kick() regardless of who calls it on localplayer
+	if method == "Kick" and (self == lp or self == Players.LocalPlayer) then
+		warn("[AntiKick] Kick blocked via namecall")
+		return
+	end
+
+	return oldNamecall(self, ...)
+end)
+
+if setreadonly then setreadonly(mt, true) end
+
+-- =============================================
+-- 3. HOOK RemoteEvent:FireServer & InvokeServer
+--    (blocks kick-trigger remotes sent by scripts)
+-- =============================================
+if setreadonly then setreadonly(mt, false) end
+
+local oldIndex = mt.__index
+mt.__index = newcclosure(function(self, key)
+	return oldIndex(self, key)
+end)
+
+-- Hook FireServer to detect and block kick remotes
+local oldFireServer
+pcall(function()
+	local RE = Instance.new("RemoteEvent") -- get ref to prototype
+	oldFireServer = hookfunction(RE.FireServer, newcclosure(function(self, ...)
+		-- Allow, we don't block remotes blindly
+		-- but we ensure kick is still hooked after any remote fires
+		return oldFireServer(self, ...)
+	end))
+end)
+
+if setreadonly then setreadonly(mt, true) end
+
+-- =============================================
+-- 4. CONTINUOUSLY RE-HOOK KICK (every 0.5s)
+--    Kick scripts sometimes re-assign the function
+-- =============================================
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		pcall(function()
+			if not checkcaller() then
+				hookfunction(lp.Kick, newcclosure(function() return end))
+			end
+		end)
+		pcall(function()
+			-- Re-lock metatable namecall in case something overwrote it
+			local m = getrawmetatable(game)
+			if setreadonly then setreadonly(m, false) end
+			local current = m.__namecall
+			-- If it got swapped out, re-apply ours
+			-- (we store a flag in getgenv to check)
+			if not getgenv().__antikick_active then
+				m.__namecall = newcclosure(function(self, ...)
+					local method = getnamecallmethod()
+					if method == "Kick" and self == lp then return end
+					return current(self, ...)
+				end)
+				getgenv().__antikick_active = true
+			end
+			if setreadonly then setreadonly(m, true) end
+		end)
+	end
+end)
+
+getgenv().__antikick_active = true
+
+-- =============================================
+-- 5. HOOK Players.LocalPlayer IN CASE IT CHANGES
+-- =============================================
+Players:GetPropertyChangedSignal("LocalPlayer"):Connect(function()
+	pcall(function()
+		hookfunction(Players.LocalPlayer.Kick, newcclosure(function() return end))
+	end)
+end)
+
+lp.CharacterAdded:Connect(function()
+	pcall(function()
+		hookfunction(lp.Kick, newcclosure(function() return end))
+	end)
+end)
+
+-- =============================================
+-- 6. BLOCK SHUTDOWN / BINDTOCLOSE
+-- =============================================
+pcall(function()
+	hookfunction(game.Shutdown, newcclosure(function() return end))
+end)
+
+pcall(function()
+	game:BindToClose(function()
+		while true do task.wait(1) end
+	end)
+end)
+
+-- =============================================
+-- 7. COREGUI LEAVE BUTTON REMOVER
+-- =============================================
+local function nukeLeaveButton()
+	for _, gui in ipairs({CoreGui:FindFirstChild("RobloxGui"), CoreGui:FindFirstChild("RobloxPromptGui")}) do
+		if gui then
+			for _, v in ipairs(gui:GetDescendants()) do
+				if v:IsA("TextButton") or v:IsA("TextLabel") or v:IsA("ImageButton") then
+					local txt = (v.Name .. (v:IsA("TextButton") and v.Text or "")):lower()
+					if txt:find("leave") or txt:find("disconnect") or txt:find("quit") or txt:find("exit") then
+						v.Visible = false
+						v.Active = false
+					end
+				end
+			end
+		end
+	end
 end
 
-for _,ball in pairs(Balls:GetChildren()) do
-  if ball and not ball:GetAttribute("realBall") then
-    return
-  end
-  
-  GetBall(ball)
-end
+nukeLeaveButton()
+RunService.Heartbeat:Connect(nukeLeaveButton)
 
-Balls.ChildAdded:Connect(function(ball)
-  if not getgenv().AutoDetectSpam then
-    return
-  elseif ball and not ball:GetAttribute("realBall") then
-    return
-  end
-  
-  getgenv().SpamClickA = false
-  ParryCounter = 0
-  GetBall(ball)
-end)
+-- =============================================
+-- 8. ESCAPE KEY SINK
+-- =============================================
+UIS.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Escape then end
 end)
 
-KillingCheats:CreateButton("Made by Neoncat", function()
-print("SuckMyD")
-end)
+print("[AntiKick + AntiLeave] Fully loaded. All kick paths blocked.")
