@@ -1,26 +1,209 @@
-local HttpService = game:GetService("HttpService")
-local config = HttpService:JSONDecode("{\"schemaVersion\":1,\"projectId\":\"blade-ball-main\",\"runtimeVersion\":\"1.1.0\",\"uiLibraryId\":\"project-reverse\",\"appearance\":{\"themeId\":\"Dark\",\"density\":\"normal\",\"playstyle\":\"custom\",\"windowTitle\":\"Blade Ball Script\",\"usageNotify\":true,\"usageNotifyText\":\"Version loaded. Toggle UI: RightControl.\"},\"layout\":[{\"id\":\"combat\",\"enabled\":true,\"sections\":[{\"id\":\"combat-gameplay\",\"enabled\":true,\"controls\":[{\"id\":\"auto-parry\",\"enabled\":true},{\"id\":\"spam-parry\",\"enabled\":true},{\"id\":\"auto-dash\",\"enabled\":true},{\"id\":\"auto-ability\",\"enabled\":true},{\"id\":\"ball-esp\",\"enabled\":true},{\"id\":\"target-esp\",\"enabled\":true},{\"id\":\"parry-now\",\"enabled\":true}]},{\"id\":\"combat-timing\",\"enabled\":true,\"controls\":[{\"id\":\"combat-status\",\"enabled\":true},{\"id\":\"parry-direction\",\"enabled\":true},{\"id\":\"parry-window\",\"enabled\":true},{\"id\":\"dash-window\",\"enabled\":true},{\"id\":\"parry-cooldown\",\"enabled\":true},{\"id\":\"combat-help\",\"enabled\":true}]}],\"title\":\"Auto Parry\"},{\"id\":\"swords\",\"enabled\":false,\"sections\":[{\"id\":\"swords-catalog\",\"enabled\":false,\"controls\":[{\"id\":\"swords-grid\",\"enabled\":false}]},{\"id\":\"swords-tools\",\"enabled\":false,\"controls\":[{\"id\":\"swords-actions\",\"enabled\":false}]}],\"title\":\"SOON\"},{\"id\":\"explosions\",\"enabled\":false,\"sections\":[{\"id\":\"explosions-catalog\",\"enabled\":false,\"controls\":[{\"id\":\"explosions-grid\",\"enabled\":false}]},{\"id\":\"explosions-tools\",\"enabled\":false,\"controls\":[{\"id\":\"explosions-actions\",\"enabled\":false}]}],\"title\":\"SOON\"},{\"id\":\"abilities\",\"enabled\":false,\"sections\":[{\"id\":\"abilities-catalog\",\"enabled\":false,\"controls\":[{\"id\":\"abilities-grid\",\"enabled\":false}]},{\"id\":\"abilities-tools\",\"enabled\":false,\"controls\":[{\"id\":\"abilities-actions\",\"enabled\":false}]}],\"title\":\"SOON\"},{\"id\":\"emotes\",\"enabled\":false,\"sections\":[{\"id\":\"emotes-catalog\",\"enabled\":false,\"controls\":[{\"id\":\"emotes-grid\",\"enabled\":false}]},{\"id\":\"emotes-tools\",\"enabled\":false,\"controls\":[{\"id\":\"emotes-actions\",\"enabled\":false}]}],\"title\":\"SOON\"},{\"id\":\"stash\",\"enabled\":false,\"sections\":[{\"id\":\"trade-stash\",\"enabled\":false,\"controls\":[{\"id\":\"stash-about\",\"enabled\":false},{\"id\":\"remove-local-items\",\"enabled\":false}]},{\"id\":\"spawn-options\",\"enabled\":false,\"controls\":[{\"id\":\"spawn-copies\",\"enabled\":false},{\"id\":\"visual-sword\",\"enabled\":false},{\"id\":\"write-equipped\",\"enabled\":false},{\"id\":\"spawn-finisher\",\"enabled\":false},{\"id\":\"spawn-accessory\",\"enabled\":false},{\"id\":\"catalog-sort\",\"enabled\":false}]}]},{\"id\":\"inventory\",\"enabled\":true,\"sections\":[{\"id\":\"inventory-analysis\",\"enabled\":true,\"controls\":[{\"id\":\"inventory-result\",\"enabled\":true},{\"id\":\"inventory-analyze\",\"enabled\":true},{\"id\":\"copy-discord\",\"enabled\":true},{\"id\":\"copy-website\",\"enabled\":true}]},{\"id\":\"catalog-info\",\"enabled\":true,\"controls\":[{\"id\":\"catalog-summary\",\"enabled\":true},{\"id\":\"catalog-refresh\",\"enabled\":true},{\"id\":\"catalog-about\",\"enabled\":true}]}]},{\"id\":\"settings\",\"enabled\":true,\"sections\":[{\"id\":\"theme\",\"enabled\":true,\"controls\":[{\"id\":\"theme-preset\",\"enabled\":true}]},{\"id\":\"about\",\"enabled\":true,\"controls\":[{\"id\":\"about-project\",\"enabled\":true},{\"id\":\"about-credits\",\"enabled\":true},{\"id\":\"about-game-guard\",\"enabled\":true}]}]}]}")
-local runtimeUrl = "https://cdn.project-reverse.org/builder/blade-ball/v1/main.luau"
-local function fetchRuntime()
-    local lastError
-    for attempt = 1, 3 do
-        local ok, result = pcall(function() return game:HttpGet(runtimeUrl, true) end)
-        if ok and type(result) == "string" and #result > 0 then return result end
-        lastError = result
-        if attempt < 3 then task.wait(0.35 * attempt) end
+local Library = loadstring(Game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
+
+local PhantomForcesWindow = Library:NewWindow("Neon.C Hub X")
+
+local KillingCheats = PhantomForcesWindow:NewSection("🎯 Combat")
+
+KillingCheats:CreateButton("Auto Parry X", function()
+local Debug = false -- Set this to true if you want my debug output.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9) -- A second argument in waitforchild what could it mean?
+local Balls = workspace:WaitForChild("Balls", 9e9)
+
+-- Functions
+
+local function print(...) -- Debug print.
+    if Debug then
+        warn(...)
     end
-    error("Blade Ball runtime download failed: " .. tostring(lastError))
 end
-local source = fetchRuntime()
-local chunk, compileError = loadstring(source)
-assert(chunk, "Blade Ball runtime compile failed: " .. tostring(compileError))
-local run = chunk()
-assert(type(run) == "function", "Blade Ball runtime entrypoint is invalid")
-local genv = (typeof(getgenv) == "function") and getgenv() or _G
-if type(genv.ProjectReverseHub) == "table" and type(genv.ProjectReverseHub.destroy) == "function" then
-    pcall(function() genv.ProjectReverseHub.destroy() end)
+
+local function VerifyBall(Ball) -- Returns nil if the ball isn't a valid projectile; true if it's the right ball.
+    if typeof(Ball) == "Instance" and Ball:IsA("BasePart") and Ball:IsDescendantOf(Balls) and Ball:GetAttribute("realBall") == true then
+        return true
+    end
 end
-local controller = run(config)
-assert(type(controller) == "table" and type(controller.destroy) == "function", "Blade Ball runtime did not start; inspect the executor console")
-genv.ProjectReverseHub = controller
-return controller
+
+local function IsTarget() -- Returns true if we are the current target.
+    return (Player.Character and Player.Character:FindFirstChild("Highlight"))
+end
+
+local function Parry() -- Parries.
+    Remotes:WaitForChild("ParryButtonPress"):Fire()
+end
+
+-- The actual code
+
+Balls.ChildAdded:Connect(function(Ball)
+    if not VerifyBall(Ball) then
+        return
+    end
+    
+    print(`Ball Spawned: {Ball}`)
+    
+    local OldPosition = Ball.Position
+    local OldTick = tick()
+    
+    Ball:GetPropertyChangedSignal("Position"):Connect(function()
+        if IsTarget() then -- No need to do the math if we're not being attacked.
+            local Distance = (Ball.Position - workspace.CurrentCamera.Focus.Position).Magnitude
+            local Velocity = (OldPosition - Ball.Position).Magnitude -- Fix for .Velocity not working. Yes I got the lowest possible grade in accuplacer math.
+            
+            print(`Distance: {Distance}\nVelocity: {Velocity}\nTime: {Distance / Velocity}`)
+        
+            if (Distance / Velocity) <= 10 then -- Sorry for the magic number. This just works. No, you don't get a slider for this because it's 2am.
+                Parry()
+            end
+        end
+        
+        if (tick() - OldTick >= 1/60) then -- Don't want it to update too quickly because my velocity implementation is aids. Yes, I tried Ball.Velocity. No, it didn't work.
+            OldTick = tick()
+            OldPosition = Ball.Position
+        end
+    end)
+end)
+end)
+
+KillingCheats:CreateButton("Auto Win X", function()
+getgenv().god = true
+while getgenv().god and task.wait() do
+    for _,ball in next, workspace.Balls:GetChildren() do
+        if ball then
+            if game:GetService("Players").LocalPlayer.Character and game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position, ball.Position)
+                if game:GetService("Players").LocalPlayer.Character:FindFirstChild("Highlight") then
+                    game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.CFrame = ball.CFrame * CFrame.new(0, 0, (ball.Velocity).Magnitude * -0.5)
+                    game:GetService("ReplicatedStorage").Remotes.ParryButtonPress:Fire()
+                end
+            end
+        end
+    end
+end
+end)
+
+KillingCheats:CreateButton("Auto Spam X", function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Code4Zaaa/X7Project/main/Game/AutoParryOnly"))();
+end)
+
+KillingCheats:CreateButton("Auto Detect Spam X", function()
+getgenv().AutoDetectSpam = true
+
+--///////////////////////////////////////////////////////////////////--
+
+local Alive = workspace:WaitForChild("Alive", 9e9)
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
+local ParryAttempt = Remotes:WaitForChild("ParryAttempt", 9e9)
+local Balls = workspace:WaitForChild("Balls", 9e9)
+
+--///////////////////////////////////////////////////////////////////--
+
+local function get_ProxyPlayer()
+  local Distance = math.huge
+  local plrRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+  local PlayerReturn = nil
+  
+  for _,plr1 in pairs(Alive:GetChildren()) do
+    if plr1:FindFirstChild("Humanoid") and plr1.Humanoid.Health > 50 then
+      if plr1.Name ~= Player.Name and plrRP and plr1:FindFirstChild("HumanoidRootPart") then
+        local magnitude = (plr1.HumanoidRootPart.Position - plrRP.Position).Magnitude
+        if magnitude <= Distance then
+          Distance = magnitude
+          PlayerReturn = plr1
+        end
+      end
+    end
+  end
+  return PlayerReturn
+end
+
+local function SuperClick()
+  task.spawn(function()
+    if IsAlive() and #Alive:GetChildren() > 1 then
+      local args1 = 0.5
+      local args2 = CFrame.new()
+      local args3 = {["enzo"] = Vector3.new()}
+      local args4 = {500, 500}
+      
+      if args1 and args2 and args3 and args4 then
+        ParryAttempt:FireServer(args1, args2, args3, args4)
+      end
+    end
+  end)
+end
+
+task.spawn(function()
+  while task.wait() do
+    if getgenv().SpamClickA and getgenv().AutoDetectSpam then
+      SuperClick()
+    end
+  end
+end)
+
+local ParryCounter = 0
+local DetectSpamDistance = 0
+
+local function GetBall(ball)
+  local Target = ""
+  
+  ball:GetPropertyChangedSignal("Position"):Connect(function()
+    local PlayerPP = Player and Player.Character and Player.Character.PrimaryPart
+    local NearestPlayer = get_ProxyPlayer()
+    
+    if ball and PlayerPP and NearestPlayer and NearestPlayer.PrimaryPart then
+      local PlayerDistance = (PlayerPP.Position - NearestPlayer.PrimaryPart.Position).Magnitude
+      local BallDistance = (PlayerPP.Position - ball.Position).Magnitude
+      
+      DetectSpamDistance = 25 + math.clamp(ParryCounter / 3, 0, 25)
+      
+      if ParryCounter > 2 and PlayerDistance < DetectSpamDistance and BallDistance < 55 then
+        getgenv().SpamClickA = true
+      else
+        getgenv().SpamClickA = false
+      end
+    end
+  end)
+  ball:GetAttributeChangedSignal("target"):Connect(function()
+    Target = ball:GetAttribute("target")
+    local NearestPlayer = get_ProxyPlayer()
+    
+    if NearestPlayer then
+      if Target == NearestPlayer.Name or Target == Player.Name then
+        ParryCounter = ParryCounter + 1
+      else
+        ParryCounter = 0
+      end
+    end
+  end)
+end
+
+for _,ball in pairs(Balls:GetChildren()) do
+  if ball and not ball:GetAttribute("realBall") then
+    return
+  end
+  
+  GetBall(ball)
+end
+
+Balls.ChildAdded:Connect(function(ball)
+  if not getgenv().AutoDetectSpam then
+    return
+  elseif ball and not ball:GetAttribute("realBall") then
+    return
+  end
+  
+  getgenv().SpamClickA = false
+  ParryCounter = 0
+  GetBall(ball)
+end)
+end)
+
+KillingCheats:CreateButton("Made by Neoncat", function()
+print("SuckMyD")
+end)
